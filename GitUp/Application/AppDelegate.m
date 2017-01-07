@@ -112,6 +112,7 @@
     kUserDefaultsKey_DiffWhitespaceMode : @(kGCLiveRepositoryDiffWhitespaceMode_Normal),
     kUserDefaultsKey_EnableVisualEffects : @(NO),
     kUserDefaultsKey_ShowWelcomeWindow : @(YES),
+    kUserDefaultsKey_DiffViewFont : [NSArchiver archivedDataWithRootObject:[NSFont userFixedPitchFontOfSize:12]]
   };
   [[NSUserDefaults standardUserDefaults] registerDefaults:defaults];
 }
@@ -547,6 +548,24 @@ static CFDataRef _MessagePortCallBack(CFMessagePortRef local, SInt32 msgid, CFDa
 - (IBAction)showPreferences:(id)sender {
   [self _updatePreferencePanel];
   [_preferencesWindow makeKeyAndOrderFront:nil];
+}
+
+- (void)changeFont:(id)sender
+{
+  NSData* fontData = [[NSUserDefaults standardUserDefaults] valueForKey:kUserDefaultsKey_DiffViewFont];
+  NSFont* font = nil;
+  if (fontData) {
+    font = [NSUnarchiver unarchiveObjectWithData:fontData];
+  }
+  
+  if (!font) {
+    font = [NSFont userFixedPitchFontOfSize:12];
+  }
+
+  font = [sender convertFont:font];
+  NSLog(@"Setting Diff View font to %@", font);
+  
+  [[NSUserDefaults standardUserDefaults] setValue:[NSArchiver archivedDataWithRootObject:font] forKey:kUserDefaultsKey_DiffViewFont];
 }
 
 - (IBAction)selectPreferencePane:(id)sender {

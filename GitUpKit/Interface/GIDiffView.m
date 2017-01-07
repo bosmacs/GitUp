@@ -19,7 +19,7 @@
 
 #import "GIPrivate.h"
 
-#define kTextFontSize 10
+#define kTextFontSize 12
 #define kTextLineHeightPadding 3
 #define kTextLineDescentAdjustment 1
 
@@ -47,7 +47,18 @@ const char* GIDiffViewMissingNewlinePlaceholder = "🚫\n";
 @implementation GIDiffView
 
 + (void)initialize {
-  GIDiffViewAttributes = CFBridgingRetain(@{(id)kCTFontAttributeName : [NSFont userFixedPitchFontOfSize:kTextFontSize], (id)kCTForegroundColorFromContextAttributeName : (id)kCFBooleanTrue});
+  // TODO problematic b/c keys are defined in GitUp application, not GitUpKit
+  NSData* fontData = [[NSUserDefaults standardUserDefaults] valueForKey:@"DiffViewFont"];
+  NSFont* font = nil;
+  if (fontData) {
+    font = [NSUnarchiver unarchiveObjectWithData:fontData];
+  }
+  
+  if (!font) {
+    font = [NSFont userFixedPitchFontOfSize:kTextFontSize];
+  }
+  
+  GIDiffViewAttributes = CFBridgingRetain(@{(id)kCTFontAttributeName : font, (id)kCTForegroundColorFromContextAttributeName : (id)kCFBooleanTrue});
 
   CFAttributedStringRef addedString = CFAttributedStringCreate(kCFAllocatorDefault, CFSTR("+"), GIDiffViewAttributes);
   GIDiffViewAddedLine = CTLineCreateWithAttributedString(addedString);
