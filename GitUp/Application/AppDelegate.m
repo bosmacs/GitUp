@@ -37,6 +37,8 @@
 
 #define kWelcomeWindowCornerRadius 10
 
+#define kDefaultFontSize 11
+
 #define kInstallerName @"install.sh"
 #define kToolName @"gitup"
 #define kToolInstallPath @"/usr/local/bin/" kToolName
@@ -86,6 +88,19 @@
 
 @end
 
+@interface FontFormatter : NSFormatter
+@end
+
+@implementation FontFormatter
+
+- (NSString*)stringForObjectValue:(id)obj {
+  NSFont* font = (NSFont*)obj;
+  return [NSString stringWithFormat:@"%@ – %0.0f", [font fontName], [font pointSize]];
+}
+
+@end
+
+
 @implementation AppDelegate {
   SUUpdater* _updater;
   BOOL _updatePending;
@@ -106,13 +121,13 @@
     GICommitMessageViewUserDefaultKey_ShowInvisibleCharacters : @(YES),
     GICommitMessageViewUserDefaultKey_ShowMargins : @(YES),
     GICommitMessageViewUserDefaultKey_EnableSpellChecking : @(YES),
+    GIDiffViewUserDefaultKey_UserFont : [NSArchiver archivedDataWithRootObject:[NSFont userFixedPitchFontOfSize:kDefaultFontSize]],
     kUserDefaultsKey_ReleaseChannel : kReleaseChannel_Stable,
     kUserDefaultsKey_CheckInterval : @(15 * 60),
     kUserDefaultsKey_FirstLaunch : @(YES),
     kUserDefaultsKey_DiffWhitespaceMode : @(kGCLiveRepositoryDiffWhitespaceMode_Normal),
     kUserDefaultsKey_EnableVisualEffects : @(NO),
     kUserDefaultsKey_ShowWelcomeWindow : @(YES),
-    kUserDefaultsKey_DiffViewFont : [NSArchiver archivedDataWithRootObject:[NSFont userFixedPitchFontOfSize:12]]
   };
   [[NSUserDefaults standardUserDefaults] registerDefaults:defaults];
 }
@@ -552,20 +567,13 @@ static CFDataRef _MessagePortCallBack(CFMessagePortRef local, SInt32 msgid, CFDa
 
 - (void)changeFont:(id)sender
 {
-  NSData* fontData = [[NSUserDefaults standardUserDefaults] valueForKey:kUserDefaultsKey_DiffViewFont];
-  NSFont* font = nil;
-  if (fontData) {
-    font = [NSUnarchiver unarchiveObjectWithData:fontData];
-  }
-  
-  if (!font) {
-    font = [NSFont userFixedPitchFontOfSize:12];
-  }
+  NSData* fontData = [[NSUserDefaults standardUserDefaults] valueForKey:GIDiffViewUserDefaultKey_UserFont];
+  NSFont* font = [NSUnarchiver unarchiveObjectWithData:fontData];
 
   font = [sender convertFont:font];
   NSLog(@"Setting Diff View font to %@", font);
   
-  [[NSUserDefaults standardUserDefaults] setValue:[NSArchiver archivedDataWithRootObject:font] forKey:kUserDefaultsKey_DiffViewFont];
+  [[NSUserDefaults standardUserDefaults] setValue:[NSArchiver archivedDataWithRootObject:font] forKey:GIDiffViewUserDefaultKey_UserFont];
 }
 
 - (IBAction)selectPreferencePane:(id)sender {

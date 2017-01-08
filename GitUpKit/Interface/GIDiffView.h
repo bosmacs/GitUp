@@ -15,6 +15,8 @@
 
 #import <AppKit/AppKit.h>
 
+extern NSString* const GIDiffViewUserDefaultKey_UserFont;
+
 @class GIDiffView, GCDiffPatch;
 
 @protocol GIDiffViewDelegate <NSObject>

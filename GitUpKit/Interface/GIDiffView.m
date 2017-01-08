@@ -19,7 +19,7 @@
 
 #import "GIPrivate.h"
 
-#define kTextFontSize 12
+#define kTextDefaultFontSize 11
 #define kTextLineHeightPadding 3
 #define kTextLineDescentAdjustment 1
 
@@ -44,37 +44,43 @@ NSColor* GIDiffViewPlainTextColor = nil;
 
 const char* GIDiffViewMissingNewlinePlaceholder = "🚫\n";
 
+NSString* const GIDiffViewUserDefaultKey_UserFont = @"GIDiffViewUserDefaultKey_UserFont";
+
 @implementation GIDiffView
 
-+ (void)initialize {
-  // TODO problematic b/c keys are defined in GitUp application, not GitUpKit
-  NSData* fontData = [[NSUserDefaults standardUserDefaults] valueForKey:@"DiffViewFont"];
+
++ (void)updateFontAttributes {
+  NSData* fontData = [[NSUserDefaults standardUserDefaults] valueForKey:GIDiffViewUserDefaultKey_UserFont];
   NSFont* font = nil;
   if (fontData) {
     font = [NSUnarchiver unarchiveObjectWithData:fontData];
   }
   
   if (!font) {
-    font = [NSFont userFixedPitchFontOfSize:kTextFontSize];
+    font = [NSFont userFixedPitchFontOfSize:kTextDefaultFontSize];
   }
   
+  if (GIDiffViewAttributes) CFRelease(GIDiffViewAttributes);
+  
   GIDiffViewAttributes = CFBridgingRetain(@{(id)kCTFontAttributeName : font, (id)kCTForegroundColorFromContextAttributeName : (id)kCFBooleanTrue});
-
+  
+  if (GIDiffViewAddedLine) CFRelease(GIDiffViewAddedLine);
   CFAttributedStringRef addedString = CFAttributedStringCreate(kCFAllocatorDefault, CFSTR("+"), GIDiffViewAttributes);
   GIDiffViewAddedLine = CTLineCreateWithAttributedString(addedString);
   CFRelease(addedString);
-
+  
+  if (GIDiffViewDeletedLine) CFRelease(GIDiffViewDeletedLine);
   CFAttributedStringRef deletedString = CFAttributedStringCreate(kCFAllocatorDefault, CFSTR("-"), GIDiffViewAttributes);
   GIDiffViewDeletedLine = CTLineCreateWithAttributedString(deletedString);
   CFRelease(deletedString);
-
+  
   CGFloat ascent;
   CGFloat descent;
   CGFloat leading;
   CTLineGetTypographicBounds(GIDiffViewAddedLine, &ascent, &descent, &leading);
   GIDiffViewLineHeight = ceilf(ascent + descent + leading) + kTextLineHeightPadding;
   GIDiffViewLineDescent = ceilf(descent) + kTextLineDescentAdjustment;
-
+  
   GIDiffViewDeletedBackgroundColor = [NSColor colorWithDeviceRed:1.0 green:0.9 blue:0.9 alpha:1.0];
   GIDiffViewDeletedHighlightColor = [NSColor colorWithDeviceRed:1.0 green:0.7 blue:0.7 alpha:1.0];
   GIDiffViewAddedBackgroundColor = [NSColor colorWithDeviceRed:0.85 green:1.0 blue:0.85 alpha:1.0];
@@ -85,6 +91,10 @@ const char* GIDiffViewMissingNewlinePlaceholder = "🚫\n";
   GIDiffViewVerticalLineColor = [NSColor colorWithDeviceRed:0.85 green:0.85 blue:0.85 alpha:0.6];
   GIDiffViewLineNumberColor = [NSColor colorWithDeviceRed:0.75 green:0.75 blue:0.75 alpha:1.0];
   GIDiffViewPlainTextColor = [NSColor blackColor];
+}
+
++ (void)initialize {
+  [self updateFontAttributes];
 }
 
 - (void)_windowKeyDidChange:(NSNotification*)notification {
@@ -107,6 +117,19 @@ const char* GIDiffViewMissingNewlinePlaceholder = "🚫\n";
 
 - (void)didFinishInitializing {
   _backgroundColor = [NSColor whiteColor];
+  [[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:GIDiffViewUserDefaultKey_UserFont options:0 context:(__bridge void*)[GIDiffView class]];
+}
+
+- (void)observeValueForKeyPath:(NSString*)keyPath ofObject:(id)object change:(NSDictionary*)change context:(void*)context {
+  if (context == (__bridge void*)[GIDiffView class]) {
+    if ([keyPath isEqualToString:GIDiffViewUserDefaultKey_UserFont]) {
+      [self.class updateFontAttributes];
+    } else {
+      XLOG_DEBUG_UNREACHABLE();
+    }
+  } else {
+    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+  }
 }
 
 - (instancetype)initWithFrame:(NSRect)frameRect {
@@ -126,6 +149,7 @@ const char* GIDiffViewMissingNewlinePlaceholder = "🚫\n";
 - (void)dealloc {
   [[NSNotificationCenter defaultCenter] removeObserver:self name:NSWindowDidResignKeyNotification object:nil];
   [[NSNotificationCenter defaultCenter] removeObserver:self name:NSWindowDidBecomeKeyNotification object:nil];
+  [[NSUserDefaults standardUserDefaults] removeObserver:self forKeyPath:GIDiffViewUserDefaultKey_UserFont];
 }
 
 - (BOOL)isOpaque {
