@@ -49,7 +49,7 @@ NSString* const GIDiffViewUserDefaultKey_UserFont = @"GIDiffViewUserDefaultKey_U
 @implementation GIDiffView
 
 
-+ (void)updateFontAttributes {
++ (void)updateSharedFontAttributes {
   NSData* fontData = [[NSUserDefaults standardUserDefaults] valueForKey:GIDiffViewUserDefaultKey_UserFont];
   NSFont* font = nil;
   if (fontData) {
@@ -94,7 +94,7 @@ NSString* const GIDiffViewUserDefaultKey_UserFont = @"GIDiffViewUserDefaultKey_U
 }
 
 + (void)initialize {
-  [self updateFontAttributes];
+  [self updateSharedFontAttributes];
 }
 
 - (void)_windowKeyDidChange:(NSNotification*)notification {
@@ -117,19 +117,6 @@ NSString* const GIDiffViewUserDefaultKey_UserFont = @"GIDiffViewUserDefaultKey_U
 
 - (void)didFinishInitializing {
   _backgroundColor = [NSColor whiteColor];
-  [[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:GIDiffViewUserDefaultKey_UserFont options:0 context:(__bridge void*)[GIDiffView class]];
-}
-
-- (void)observeValueForKeyPath:(NSString*)keyPath ofObject:(id)object change:(NSDictionary*)change context:(void*)context {
-  if (context == (__bridge void*)[GIDiffView class]) {
-    if ([keyPath isEqualToString:GIDiffViewUserDefaultKey_UserFont]) {
-      [self.class updateFontAttributes];
-    } else {
-      XLOG_DEBUG_UNREACHABLE();
-    }
-  } else {
-    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
-  }
 }
 
 - (instancetype)initWithFrame:(NSRect)frameRect {
@@ -149,7 +136,6 @@ NSString* const GIDiffViewUserDefaultKey_UserFont = @"GIDiffViewUserDefaultKey_U
 - (void)dealloc {
   [[NSNotificationCenter defaultCenter] removeObserver:self name:NSWindowDidResignKeyNotification object:nil];
   [[NSNotificationCenter defaultCenter] removeObserver:self name:NSWindowDidBecomeKeyNotification object:nil];
-  [[NSUserDefaults standardUserDefaults] removeObserver:self forKeyPath:GIDiffViewUserDefaultKey_UserFont];
 }
 
 - (BOOL)isOpaque {

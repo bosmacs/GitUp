@@ -334,6 +334,7 @@ static NSColor* _DimColor(NSColor* color) {
     if (self.viewVisible) {
       if ([keyPath isEqualToString:GIDiffViewUserDefaultKey_UserFont]) {
         // diff font has changed
+        [GIDiffView updateSharedFontAttributes];
         [self _recreateDiffViews];
       } else {
         // diff view type (unified/side-by-side) change
